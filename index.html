@@ -136,10 +136,18 @@ section.tinted { background: var(--vp-blue-50); }
 .category-summary-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .category-section { background: #fff; border: 1px solid var(--vp-gray-300); border-radius: 12px; padding: 28px; box-shadow: var(--shadow-xs); }
 .category-section-title { font-size: 16px; font-weight: 600; margin-bottom: 18px; color: var(--vp-gray-900); }
-.category-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--vp-gray-200); }
+.category-item { padding: 16px 0; border-bottom: 1px solid var(--vp-gray-200); }
 .category-item:last-child { border-bottom: none; }
+.category-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .category-name { font-size: 14px; color: var(--vp-gray-800); font-weight: 500; }
-.category-pct { font-size: 18px; font-weight: 700; color: var(--vp-red-500); }
+.category-emoji { margin-right: 6px; font-size: 16px; }
+.category-pct { font-size: 16px; font-weight: 700; }
+.category-pct.high { color: var(--vp-red-500); }
+.category-pct.low { color: var(--vp-green-500); }
+.category-bar { width: 100%; height: 8px; background: var(--vp-gray-200); border-radius: 4px; overflow: hidden; }
+.category-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+.category-bar-fill.high { background: var(--vp-red-500); }
+.category-bar-fill.low { background: var(--vp-green-500); }
 
 @media (max-width: 900px) {
   .category-summary-wrapper { grid-template-columns: 1fr; }
@@ -411,6 +419,28 @@ async function loadLive() {
   }
 }
 
+// ── CATEGORY EMOJIS ──
+const categoryEmojis = {
+  "Movies & TV": "🎬",
+  "Toys & Games": "🎮",
+  "Industrial & Scientific": "🔬",
+  "Garden & Outdoor": "🌳",
+  "Software": "💻",
+  "Grocery & Gourmet Food": "🍔",
+  "Pet Supplies": "🐾",
+  "Baby": "👶",
+  "Electronics": "⚡",
+  "Video Games": "🕹️",
+  "Automotive": "🚗",
+  "Office Products": "📎",
+  "Home & Kitchen": "🏠",
+  "Music": "🎵",
+  "Sports & Outdoors": "⚽",
+  "Beauty & Personal Care": "💄",
+  "Camera & Photo": "📷",
+  "Health & Personal Care": "💊"
+};
+
 // ── CATEGORY SUMMARY RENDER ──
 function renderCategorySummary(cats) {
   const cleaned = (cats || [])
@@ -427,22 +457,41 @@ function renderCategorySummary(cats) {
   // Get top 3 (highest) and bottom 3 (lowest)
   const top3 = cleaned.slice(0, 3);
   const bottom3 = cleaned.slice(-3).reverse();
+  const maxPct = Math.max(...cleaned.map(c => c.pct));
 
-  // Render top 3
-  const topHtml = top3.map(c => `
-    <div class="category-item">
-      <span class="category-name">${c.category}</span>
-      <span class="category-pct">${c.pct}%</span>
-    </div>
-  `).join("");
+  // Render top 3 (red, high rates)
+  const topHtml = top3.map(c => {
+    const emoji = categoryEmojis[c.category] || "📊";
+    const barWidth = (c.pct / maxPct) * 100;
+    return `
+      <div class="category-item">
+        <div class="category-header">
+          <span class="category-name"><span class="category-emoji">${emoji}</span>${c.category}</span>
+          <span class="category-pct high">${c.pct}%</span>
+        </div>
+        <div class="category-bar">
+          <div class="category-bar-fill high" style="width: ${barWidth}%"></div>
+        </div>
+      </div>
+    `;
+  }).join("");
 
-  // Render bottom 3
-  const bottomHtml = bottom3.map(c => `
-    <div class="category-item">
-      <span class="category-name">${c.category}</span>
-      <span class="category-pct">${c.pct}%</span>
-    </div>
-  `).join("");
+  // Render bottom 3 (green, low rates)
+  const bottomHtml = bottom3.map(c => {
+    const emoji = categoryEmojis[c.category] || "📊";
+    const barWidth = (c.pct / maxPct) * 100;
+    return `
+      <div class="category-item">
+        <div class="category-header">
+          <span class="category-name"><span class="category-emoji">${emoji}</span>${c.category}</span>
+          <span class="category-pct low">${c.pct}%</span>
+        </div>
+        <div class="category-bar">
+          <div class="category-bar-fill low" style="width: ${barWidth}%"></div>
+        </div>
+      </div>
+    `;
+  }).join("");
 
   // Insert into DOM
   document.getElementById("categorySummaryTop").innerHTML = topHtml;
