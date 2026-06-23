@@ -309,119 +309,94 @@ footer a:hover { color:var(--vp-blue-300); }
 // ── CONFIG ──
 const SUPABASE_URL  = "https://jxnxnuhminuclspallma.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bnhudWhtaW51Y2xzcGFsbG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTc5OTksImV4cCI6MjA5MjQ3Mzk5OX0.7BqCjzf5WDq8Db_FWfwxEPQcP8iK_sLmOApJZ34vXi0";
+
 const IS_DEMO = SUPABASE_ANON === "YOUR_SUPABASE_ANON_KEY";
-const MONITORING_START = new Date("2026-04-09");
+
+const MONITORING_START = new Date("2026-05-22");
 const PRIME_DAY_START  = new Date("2026-06-23");
 
-// ── DEMO DATA ──
-const DEMO_CATS = [
-  {category:"Movies & TV", pct_not_genuine_deals:66.7, total_products:15},
-  {category:"Toys & Games", pct_not_genuine_deals:64.3, total_products:14},
-  {category:"Industrial & Scientific", pct_not_genuine_deals:61.5, total_products:13},
-  {category:"Garden & Outdoor", pct_not_genuine_deals:61.1, total_products:18},
-  {category:"Software", pct_not_genuine_deals:50.0, total_products:6},
-  {category:"Grocery & Gourmet Food", pct_not_genuine_deals:47.4, total_products:19},
-  {category:"Pet Supplies", pct_not_genuine_deals:45.5, total_products:11},
-  {category:"Baby", pct_not_genuine_deals:44.4, total_products:18},
-  {category:"Electronics", pct_not_genuine_deals:40.5, total_products:195},
-  {category:"Video Games", pct_not_genuine_deals:40.0, total_products:10},
-  {category:"Automotive", pct_not_genuine_deals:37.5, total_products:16},
-  {category:"Office Products", pct_not_genuine_deals:37.5, total_products:16},
-  {category:"Home & Kitchen", pct_not_genuine_deals:36.8, total_products:38},
-  {category:"Music", pct_not_genuine_deals:33.3, total_products:9},
-  {category:"Sports & Outdoors", pct_not_genuine_deals:28.6, total_products:21},
-  {category:"Beauty & Personal Care", pct_not_genuine_deals:26.3, total_products:19},
-  {category:"Camera & Photo", pct_not_genuine_deals:25.0, total_products:16},
-  {category:"Health & Personal Care", pct_not_genuine_deals:20.0, total_products:20},
-];
-const DEMO_OFFENDERS = [
-  {t:"Philips Avent Natural Baby Bottles", c:"Baby Products", low:4.00, pd:29.95},
-  {t:"BOLDIFY Hairline Powder - Root Touch Up", c:"Health & Personal Care", low:17.94, pd:98.71},
-  {t:"Kawaye Meta Quest 3S Head Strap", c:"Electronics", low:23.37, pd:41.50},
-  {t:"3-Pack Tablets Stylus Pen", c:"Electronics", low:4.99, pd:9.99},
-  {t:"Beats Pill Portable Bluetooth Speaker", c:"Electronics", low:99.95, pd:199.99},
-  {t:"Chemical Guys Microfiber Cloth", c:"Automotive", low:15.99, pd:24.99},
-  {t:"Amazon Basics Leak-Proof Dog Pads", c:"Pet Supplies", low:9.99, pd:18.88},
-  {t:"L'Oreal Infallible Setting Spray", c:"Beauty", low:8.99, pd:14.97},
-  {t:"USANOOKS Microfiber Cleaning Cloth", c:"Home & Kitchen", low:6.99, pd:12.99},
-  {t:"Under Armour Men's Golf Polo", c:"Clothing", low:19.99, pd:27.81},
-];
+// ── STATE ──
+let catChartInstance = null;
 
-document.addEventListener("DOMContentLoaded", () => {
-  const days = Math.max(0, Math.floor((new Date() - MONITORING_START)/86400000));
+// ── INIT ──
+document.addEventListener("DOMContentLoaded", async () => {
   if (IS_DEMO) {
-    document.getElementById("s-fake").textContent = "87.5%";
-    document.getElementById("s-products").textContent = "1,070";
-    document.getElementById("s-days").textContent = "32";
-    document.getElementById("v-pct").textContent = "42.8%";
-    document.getElementById("v-bar").style.width = "42.8%";
     drawCats(DEMO_CATS);
-    drawOffenders(DEMO_OFFENDERS);
   } else {
-    document.getElementById("demoNote").style.display = "none";
-    loadLive(days);
+    await loadLive();
   }
 });
 
-async function loadLive(days) {
-  document.getElementById("s-days").textContent = days;
-
-  // Fetch overall stats
+// ── LOAD LIVE DATA ──
+async function loadLive() {
   try {
-    const statsResp = await fetch(`${SUPABASE_URL}/rest/v1/prime_day_stats?select=*`, {
-      headers: { apikey: SUPABASE_ANON, Authorization:`Bearer ${SUPABASE_ANON}` }
-    });
-    if (statsResp.ok) {
-      const statsData = await statsResp.json();
-      if (statsData && statsData.length > 0) {
-        const stats = statsData[0];
-        document.getElementById("s-fake").textContent = stats.pct_not_new_lows + "%";
-        document.getElementById("s-products").textContent = stats.total_products.toLocaleString();
-        document.getElementById("v-pct").textContent = stats.pct_not_genuine_deals + "%";
-        document.getElementById("v-bar").style.width = stats.pct_not_genuine_deals + "%";
-      }
-    }
-  } catch(e) {
-    console.warn("stats fetch failed", e);
-  }
+    console.log("Fetching category_deals...");
 
-  // Fetch category data
-  try {
-    const catResp = await fetch(`${SUPABASE_URL}/rest/v1/category_deals?select=*&order=pct_not_genuine_deals.desc`, {
-      headers: { apikey: SUPABASE_ANON, Authorization:`Bearer ${SUPABASE_ANON}` }
-    });
-    if (catResp.ok) {
-      const catData = await catResp.json();
-      if (catData && catData.length > 0) {
-        drawCats(catData);
-      } else {
-        drawCats(DEMO_CATS);
+    const catResp = await fetch(
+      `${SUPABASE_URL}/rest/v1/category_deals?select=*`,
+      {
+        headers: {
+          apikey: SUPABASE_ANON,
+          Authorization: `Bearer ${SUPABASE_ANON}`,
+          Accept: "application/json"
+        }
       }
-    } else {
-      drawCats(DEMO_CATS);
+    );
+
+    const catData = await catResp.json();
+
+    console.log("RAW CATEGORY DATA:", catData);
+
+    if (!catResp.ok) {
+      throw new Error("Supabase error: " + JSON.stringify(catData));
     }
-  } catch(e) {
-    console.warn("category data fetch failed", e);
+
+    drawCats(catData);
+
+  } catch (err) {
+    console.error("Live fetch failed, using demo data:", err);
     drawCats(DEMO_CATS);
   }
 }
 
+// ── CHART RENDER (FIXED) ──
 function drawCats(cats) {
-  const sorted = [...cats].filter(c => c.category !== null && c.category !== 'null')
-    .sort((a,b) => b.pct_not_genuine_deals - a.pct_not_genuine_deals);
 
-  new Chart(document.getElementById("catChart"), {
+  if (catChartInstance) {
+    catChartInstance.destroy();
+  }
+
+  const cleaned = (cats || [])
+    .filter(c => c.category && c.category !== 'null')
+    .map(c => ({
+      category: c.category,
+      pct: Number(c.pct_not_genuine_deals),
+      total: Number(c.total_products)
+    }))
+    .sort((a, b) => b.pct - a.pct);
+
+  console.log("CLEANED DATA:", cleaned);
+
+  const ctx = document.getElementById("catChart");
+
+  if (!ctx) {
+    console.error("Chart canvas not found!");
+    return;
+  }
+
+  catChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: sorted.map(c => c.category),
+      labels: cleaned.map(c => c.category),
       datasets: [{
-        data: sorted.map(c => c.pct_not_genuine_deals),
-        backgroundColor: sorted.map(c => {
-          const pct = c.pct_not_genuine_deals;
-          return pct >= 50 ? "#F34949" : pct >= 35 ? "#EC930D" : "#45B013";
+        data: cleaned.map(c => c.pct),
+        backgroundColor: cleaned.map(c => {
+          if (c.pct >= 50) return "#F34949";
+          if (c.pct >= 35) return "#EC930D";
+          return "#45B013";
         }),
-        borderRadius: 5,
-        barPercentage: 0.72
+        borderRadius: 6,
+        barPercentage: 0.75
       }]
     },
     options: {
@@ -432,45 +407,29 @@ function drawCats(cats) {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (c) => ` ${c.parsed.x}%`,
-            afterLabel: (c) => ` (${sorted[c.dataIndex].total_products} products)`
+            label: (ctx) => `${ctx.parsed.x}%`,
+            afterLabel: (ctx) => {
+              const item = cleaned[ctx.dataIndex];
+              return `${item.total} products`;
+            }
           }
         }
       },
       scales: {
         x: {
           max: 70,
-          grid: { color: "#E7EAF1" },
           ticks: {
-            callback: (v) => v + "%",
-            font: { family: "Satoshi", size: 12 },
-            color: "#787878"
+            callback: v => v + "%"
           }
         },
         y: {
-          grid: { display: false },
           ticks: {
-            font: { family: "Satoshi", size: 13, weight: "500" },
-            color: "#202020"
+            font: { size: 12 }
           }
         }
       }
     }
   });
-}
-
-function drawOffenders(rows) {
-  document.getElementById("offenders").innerHTML = rows.map(r=>{
-    const pct = (((r.pd - r.low)/r.low)*100).toFixed(0);
-    const cur = r.c.includes("CA") ? "C$" : "$";
-    return `<tr>
-      <td style="font-weight:500">${r.t}</td>
-      <td style="color:var(--vp-gray-700)">${r.c}</td>
-      <td>$${r.low.toFixed(2)}</td>
-      <td>$${r.pd.toFixed(2)}</td>
-      <td class="inflate">+${pct}%</td>
-    </tr>`;
-  }).join("");
 }
 </script>
 </body>
