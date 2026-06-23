@@ -132,6 +132,19 @@ section.tinted { background: var(--vp-blue-50); }
 .verdict-legend { display: flex; gap: 22px; font-size: 13px; color: var(--vp-gray-700); }
 .legend-sq { width:11px; height:11px; border-radius:3px; display:inline-block; margin-right:7px; vertical-align:middle; }
 
+/* ── CATEGORY SUMMARY ── */
+.category-summary-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.category-section { background: #fff; border: 1px solid var(--vp-gray-300); border-radius: 12px; padding: 28px; box-shadow: var(--shadow-xs); }
+.category-section-title { font-size: 16px; font-weight: 600; margin-bottom: 18px; color: var(--vp-gray-900); }
+.category-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--vp-gray-200); }
+.category-item:last-child { border-bottom: none; }
+.category-name { font-size: 14px; color: var(--vp-gray-800); font-weight: 500; }
+.category-pct { font-size: 18px; font-weight: 700; color: var(--vp-red-500); }
+
+@media (max-width: 900px) {
+  .category-summary-wrapper { grid-template-columns: 1fr; }
+}
+
 /* ── CHART CARD ── */
 .chart-card { background:#fff; border:1px solid var(--vp-gray-300); border-radius:12px; padding:28px; box-shadow: var(--shadow-xs); }
 .chart-card h3 { font-size:19px; font-weight:600; margin-bottom:4px; }
@@ -245,11 +258,16 @@ footer a:hover { color:var(--vp-blue-300); }
   <div class="wrap">
     <div class="section-eyebrow">By category</div>
     <h2 class="section-title">Non-genuine deal rates vary by product category</h2>
-    <p class="section-intro">The percentage of products in each category that were not genuine deals—priced higher on Prime Day than at any point during May 22 – June 22.</p>
-    <div class="chart-card">
-      <h3>Non-genuine deals by category</h3>
-      <p class="sub">Higher percentages indicate more products priced above their historical low in that category</p>
-      <div class="chart-box"><canvas id="catChart"></canvas></div>
+    <p class="section-intro">Categories with the highest and lowest rates of non-genuine deals—products priced higher on Prime Day than at any point during May 22 – June 22.</p>
+    <div class="category-summary-wrapper">
+      <div class="category-section">
+        <h3 class="category-section-title">Highest non-genuine rates</h3>
+        <div id="categorySummaryTop"></div>
+      </div>
+      <div class="category-section">
+        <h3 class="category-section-title">Lowest non-genuine rates</h3>
+        <div id="categorySummaryBottom"></div>
+      </div>
     </div>
   </div>
 </section>
@@ -326,7 +344,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("s-days").textContent = "32";
     document.getElementById("v-pct").textContent = "42.8%";
     document.getElementById("v-bar").style.width = "42.8%";
-    drawCats(DEMO_CATS);
+    renderCategorySummary(DEMO_CATS);
   } else {
     document.getElementById("demoNote").style.display = "none";
     await loadLive();
@@ -385,21 +403,16 @@ async function loadLive() {
       throw new Error("Supabase error: " + JSON.stringify(catData));
     }
 
-    drawCats(catData);
+    renderCategorySummary(catData);
 
   } catch (err) {
     console.error("Live fetch failed, using demo data:", err);
-    drawCats(DEMO_CATS);
+    renderCategorySummary(DEMO_CATS);
   }
 }
 
-// ── CHART RENDER (FIXED) ──
-function drawCats(cats) {
-
-  if (catChartInstance) {
-    catChartInstance.destroy();
-  }
-
+// ── CATEGORY SUMMARY RENDER ──
+function renderCategorySummary(cats) {
   const cleaned = (cats || [])
     .filter(c => c.category && c.category !== 'null')
     .map(c => ({
@@ -411,59 +424,29 @@ function drawCats(cats) {
 
   console.log("CLEANED DATA:", cleaned);
 
-  const ctx = document.getElementById("catChart");
+  // Get top 3 (highest) and bottom 3 (lowest)
+  const top3 = cleaned.slice(0, 3);
+  const bottom3 = cleaned.slice(-3).reverse();
 
-  if (!ctx) {
-    console.error("Chart canvas not found!");
-    return;
-  }
+  // Render top 3
+  const topHtml = top3.map(c => `
+    <div class="category-item">
+      <span class="category-name">${c.category}</span>
+      <span class="category-pct">${c.pct}%</span>
+    </div>
+  `).join("");
 
-  catChartInstance = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: cleaned.map(c => c.category),
-      datasets: [{
-        data: cleaned.map(c => c.pct),
-        backgroundColor: cleaned.map(c => {
-          if (c.pct >= 50) return "#F34949";
-          if (c.pct >= 35) return "#EC930D";
-          return "#45B013";
-        }),
-        borderRadius: 6,
-        barPercentage: 0.75
-      }]
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `${ctx.parsed.x}%`,
-            afterLabel: (ctx) => {
-              const item = cleaned[ctx.dataIndex];
-              return `${item.total} products`;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          max: 70,
-          ticks: {
-            callback: v => v + "%"
-          }
-        },
-        y: {
-          ticks: {
-            font: { size: 12 }
-          }
-        }
-      }
-    }
-  });
+  // Render bottom 3
+  const bottomHtml = bottom3.map(c => `
+    <div class="category-item">
+      <span class="category-name">${c.category}</span>
+      <span class="category-pct">${c.pct}%</span>
+    </div>
+  `).join("");
+
+  // Insert into DOM
+  document.getElementById("categorySummaryTop").innerHTML = topHtml;
+  document.getElementById("categorySummaryBottom").innerHTML = bottomHtml;
 }
 </script>
 </body>
