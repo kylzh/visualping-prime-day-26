@@ -407,16 +407,22 @@ async function loadLive(days) {
 }
 
 function drawCats(cats) {
-  const sorted = [...cats].filter(c => c.category !== null && c.category !== 'null')
-    .sort((a,b) => b.pct_not_genuine_deals - a.pct_not_genuine_deals);
+  const cleaned = cats
+    .filter(c => c.category !== null && c.category !== 'null')
+    .map(c => ({
+      category: c.category,
+      pct_not_genuine_deals: Number(c.pct_not_genuine_deals),
+      total_products: Number(c.total_products)
+    }))
+    .sort((a, b) => b.pct_not_genuine_deals - a.pct_not_genuine_deals);
 
   new Chart(document.getElementById("catChart"), {
     type: "bar",
     data: {
-      labels: sorted.map(c => c.category),
+      labels: cleaned.map(c => c.category),
       datasets: [{
-        data: sorted.map(c => c.pct_not_genuine_deals),
-        backgroundColor: sorted.map(c => {
+        data: cleaned.map(c => c.pct_not_genuine_deals),
+        backgroundColor: cleaned.map(c => {
           const pct = c.pct_not_genuine_deals;
           return pct >= 50 ? "#F34949" : pct >= 35 ? "#EC930D" : "#45B013";
         }),
@@ -429,36 +435,11 @@ function drawCats(cats) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (c) => ` ${c.parsed.x}%`,
-            afterLabel: (c) => ` (${sorted[c.dataIndex].total_products} products)`
-          }
-        }
-      },
-      scales: {
-        x: {
-          max: 70,
-          grid: { color: "#E7EAF1" },
-          ticks: {
-            callback: (v) => v + "%",
-            font: { family: "Satoshi", size: 12 },
-            color: "#787878"
-          }
-        },
-        y: {
-          grid: { display: false },
-          ticks: {
-            font: { family: "Satoshi", size: 13, weight: "500" },
-            color: "#202020"
-          }
-        }
+        legend: { display: false }
       }
     }
   });
 }
-
 function drawOffenders(rows) {
   document.getElementById("offenders").innerHTML = rows.map(r=>{
     const pct = (((r.pd - r.low)/r.low)*100).toFixed(0);
