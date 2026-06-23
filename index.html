@@ -307,7 +307,7 @@ footer a:hover { color:var(--vp-blue-300); }
     <h2 class="section-title">Methodology</h2>
     <div class="method">
       <p>We analyzed approximately <strong>2,500 Amazon US products</strong> tracked using Visualping's AI page monitoring tool, which records price change events, between <strong>May 22 and June 23, 2026</strong>.</p>
-      <p>For this analysis, we focused on approximately <strong>1,070 products that experienced at least one recorded price change during Prime Day</strong> (June 23, 2026).</p>
+      <p>For this analysis, we focused on approximately <strong><span id="methodology-product-count">1,070</span> products that experienced at least one recorded price change during Prime Day</strong> (June 23, 2026).</p>
       <p>Price data was collected as real-time price change events and stored in a Supabase database.</p>
       <p>For each product, we compared its Prime Day price against its historical price records available in the dataset prior to June 23. Products were classified into three categories:</p>
       <ul style="margin-left:24px; margin-bottom:14px;">
@@ -391,6 +391,7 @@ async function loadLive() {
       document.getElementById("s-products").textContent = Number(stats.total_products).toLocaleString();
       document.getElementById("v-pct").textContent = stats.pct_not_genuine_deals + "%";
       document.getElementById("v-bar").style.width = stats.pct_not_genuine_deals + "%";
+      document.getElementById("methodology-product-count").textContent = Number(stats.total_products).toLocaleString();
     }
 
     // Update categories
