@@ -443,14 +443,10 @@ function renderCategorySummary(cats) {
   const top3 = cleaned.slice(0, 3);
   const bottom3 = cleaned.slice(-3).reverse();
 
-  // Find max percentage for bar scaling
-  const allPcts = cleaned.map(c => c.pct);
-  const maxPct = Math.max(...allPcts);
-
   // Render top 3 (red, high rates)
   const topHtml = top3.map(c => {
     const emoji = categoryEmojis[c.category] || "📊";
-    const barWidth = (c.pct / maxPct) * 100;
+    const barWidth = c.pct;
     return `
       <div class="category-item">
         <div class="category-header">
