@@ -365,14 +365,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function loadLive(days) {
   document.getElementById("s-days").textContent = days;
+
+  // Fetch overall stats
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/category_deals?select=*&order=pct_not_genuine_deals.desc`, {
+    const statsResp = await fetch(`${SUPABASE_URL}/rest/v1/prime_day_stats?select=*`, {
       headers: { apikey: SUPABASE_ANON, Authorization:`Bearer ${SUPABASE_ANON}` }
     });
-    if (r.ok) {
-      const data = await r.json();
-      if (data && data.length > 0) {
-        drawCats(data);
+    if (statsResp.ok) {
+      const statsData = await statsResp.json();
+      if (statsData && statsData.length > 0) {
+        const stats = statsData[0];
+        document.getElementById("s-fake").textContent = stats.pct_not_new_lows + "%";
+        document.getElementById("s-products").textContent = stats.total_products.toLocaleString();
+        document.getElementById("v-pct").textContent = stats.pct_not_genuine_deals + "%";
+        document.getElementById("v-bar").style.width = stats.pct_not_genuine_deals + "%";
+      }
+    }
+  } catch(e) {
+    console.warn("stats fetch failed", e);
+  }
+
+  // Fetch category data
+  try {
+    const catResp = await fetch(`${SUPABASE_URL}/rest/v1/category_deals?select=*&order=pct_not_genuine_deals.desc`, {
+      headers: { apikey: SUPABASE_ANON, Authorization:`Bearer ${SUPABASE_ANON}` }
+    });
+    if (catResp.ok) {
+      const catData = await catResp.json();
+      if (catData && catData.length > 0) {
+        drawCats(catData);
       } else {
         drawCats(DEMO_CATS);
       }
