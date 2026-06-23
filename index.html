@@ -361,60 +361,45 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // ── LOAD LIVE DATA ──
 async function loadLive() {
-  // Fetch overall stats
   try {
-    console.log("Fetching prime_day_stats...");
-    const statsResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/prime_day_stats?select=*`,
+    console.log("Fetching dashboard data from RPC...");
+
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/rpc/get_prime_day_dashboard`,
       {
+        method: "POST",
         headers: {
           apikey: SUPABASE_ANON,
           Authorization: `Bearer ${SUPABASE_ANON}`,
-          Accept: "application/json"
-        }
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({})
       }
     );
-    const statsData = await statsResp.json();
-    console.log("STATS DATA:", statsData);
 
-    if (statsResp.ok && statsData && statsData.length > 0) {
-      const stats = statsData[0];
+    const data = await res.json();
+    console.log("DASHBOARD DATA:", data);
+
+    if (!res.ok) {
+      throw new Error("RPC error: " + JSON.stringify(data));
+    }
+
+    // Update stats
+    if (data && data.stats) {
+      const stats = data.stats;
       document.getElementById("s-fake").textContent = stats.pct_not_new_lows + "%";
       document.getElementById("s-products").textContent = Number(stats.total_products).toLocaleString();
       document.getElementById("v-pct").textContent = stats.pct_not_genuine_deals + "%";
       document.getElementById("v-bar").style.width = stats.pct_not_genuine_deals + "%";
     }
-  } catch (err) {
-    console.error("Stats fetch failed:", err);
-  }
 
-  // Fetch top/bottom category data
-  try {
-    console.log("Fetching category_deals_top_bottom...");
-
-    const catResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/category_deals_top_bottom?select=*`,
-      {
-        headers: {
-          apikey: SUPABASE_ANON,
-          Authorization: `Bearer ${SUPABASE_ANON}`,
-          Accept: "application/json"
-        }
-      }
-    );
-
-    const catData = await catResp.json();
-
-    console.log("RAW CATEGORY DATA:", catData);
-
-    if (!catResp.ok) {
-      throw new Error("Supabase error: " + JSON.stringify(catData));
+    // Update categories
+    if (data && data.categories) {
+      renderCategorySummary(data.categories);
     }
 
-    renderCategorySummary(catData);
-
   } catch (err) {
-    console.error("Live fetch failed, using demo data:", err);
+    console.error("Dashboard fetch failed:", err);
     renderCategorySummary(DEMO_CATS);
   }
 }
@@ -448,15 +433,15 @@ function renderCategorySummary(cats) {
     .map(c => ({
       category: c.category,
       pct: Number(c.pct_not_genuine_deals),
-      total: Number(c.total_products),
-      segment: c.segment
-    }));
+      total: Number(c.total_products)
+    }))
+    .sort((a, b) => b.pct - a.pct);
 
   console.log("CLEANED DATA:", cleaned);
 
-  // Separate top and bottom by segment
-  const top3 = cleaned.filter(c => c.segment === 'top');
-  const bottom3 = cleaned.filter(c => c.segment === 'bottom');
+  // Get top 3 (highest) and bottom 3 (lowest)
+  const top3 = cleaned.slice(0, 3);
+  const bottom3 = cleaned.slice(-3).reverse();
 
   // Find max percentage for bar scaling
   const allPcts = cleaned.map(c => c.pct);
