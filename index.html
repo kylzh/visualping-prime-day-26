@@ -220,7 +220,7 @@ footer a:hover { color:var(--vp-blue-300); }
   <div class="wrap">
     <span class="hero-eyebrow">Prime Day 2026 · Price Investigation</span>
     <h1>We tracked <span class="accent">1,070 Amazon products</span> on Prime Day. 87.5% of price changes weren't the lowest price ever.</h1>
-    <p class="hero-deck">Visualping tracked 2,500 Amazon US products from May 22 through June 23 to determine which Prime Day prices were genuine new lows or matched previous promotions, versus prices that had previously been lower.</p>
+    <p class="hero-deck">Visualping tracked 2,500 Amazon US products from <span data-date-end data-start-date="May 22">May 22 through June 23 (updated June 23)</span> to determine which Prime Day prices were genuine new lows or matched previous promotions, versus prices that had previously been lower.</p>
 
     <div class="stats">
       <div class="stat">
@@ -233,7 +233,7 @@ footer a:hover { color:var(--vp-blue-300); }
       </div>
       <div class="stat">
         <div class="stat-num" id="s-days">32</div>
-        <div class="stat-label">days of tracking (May 22 – Jun 23)</div>
+        <div class="stat-label">days of tracking (<span data-date-end data-start-date="May 22">May 22 – Jun 23</span>)</div>
       </div>
     </div>
   </div>
@@ -306,7 +306,7 @@ footer a:hover { color:var(--vp-blue-300); }
     <div class="section-eyebrow">How we analyzed this</div>
     <h2 class="section-title">Methodology</h2>
     <div class="method">
-      <p>We analyzed approximately <strong>2,500 Amazon US products</strong> tracked using Visualping's AI page monitoring tool, which records price change events, between <strong>May 22 and June 23, 2026</strong>.</p>
+      <p>We analyzed approximately <strong>2,500 Amazon US products</strong> tracked using Visualping's AI page monitoring tool, which records price change events, between <strong><span data-date-end data-start-date="May 22">May 22 and June 23, 2026 (updated June 23)</span></strong>.</p>
       <p>For this analysis, we focused on approximately <strong><span id="methodology-product-count">1,070</span> products that experienced at least one recorded price change during Prime Day</strong> (June 23, 2026).</p>
       <p>Price data was collected as real-time price change events and stored in a Supabase database.</p>
       <p>For each product, we compared its Prime Day price against its historical price records available in the dataset prior to June 23. Products were classified into three categories:</p>
@@ -341,11 +341,32 @@ const IS_DEMO = SUPABASE_ANON === "YOUR_SUPABASE_ANON_KEY";
 const MONITORING_START = new Date("2026-04-09");
 const PRIME_DAY_START  = new Date("2026-06-23");
 
+// ── DATE FORMATTING ──
+function formatDate(date) {
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  return date.toLocaleDateString('en-US', options);
+}
+
+function updateDynamicDates() {
+  const today = new Date();
+  const todayStr = formatDate(today);
+  const dataEndDate = formatDate(today);
+
+  // Update date range in page with current date and "updated" suffix
+  document.querySelectorAll('[data-date-end]').forEach(el => {
+    const startDate = el.getAttribute('data-start-date');
+    el.textContent = `${startDate} - ${dataEndDate} (updated ${todayStr})`;
+  });
+}
+
 // ── STATE ──
 let catChartInstance = null;
 
 // ── INIT ──
 document.addEventListener("DOMContentLoaded", async () => {
+  // Update dynamic dates
+  updateDynamicDates();
+
   if (IS_DEMO) {
     document.getElementById("s-fake").textContent = "87.5%";
     document.getElementById("s-products").textContent = "1,070";
