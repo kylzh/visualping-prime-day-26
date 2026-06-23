@@ -388,12 +388,12 @@ async function loadLive() {
     console.error("Stats fetch failed:", err);
   }
 
-  // Fetch category data
+  // Fetch top/bottom category data
   try {
-    console.log("Fetching category_deals...");
+    console.log("Fetching category_deals_top_bottom...");
 
     const catResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/category_deals?select=*`,
+      `${SUPABASE_URL}/rest/v1/category_deals_top_bottom?select=*`,
       {
         headers: {
           apikey: SUPABASE_ANON,
@@ -448,16 +448,19 @@ function renderCategorySummary(cats) {
     .map(c => ({
       category: c.category,
       pct: Number(c.pct_not_genuine_deals),
-      total: Number(c.total_products)
-    }))
-    .sort((a, b) => b.pct - a.pct);
+      total: Number(c.total_products),
+      segment: c.segment
+    }));
 
   console.log("CLEANED DATA:", cleaned);
 
-  // Get top 3 (highest) and bottom 3 (lowest)
-  const top3 = cleaned.slice(0, 3);
-  const bottom3 = cleaned.slice(-3).reverse();
-  const maxPct = Math.max(...cleaned.map(c => c.pct));
+  // Separate top and bottom by segment
+  const top3 = cleaned.filter(c => c.segment === 'top');
+  const bottom3 = cleaned.filter(c => c.segment === 'bottom');
+
+  // Find max percentage for bar scaling
+  const allPcts = cleaned.map(c => c.pct);
+  const maxPct = Math.max(...allPcts);
 
   // Render top 3 (red, high rates)
   const topHtml = top3.map(c => {
