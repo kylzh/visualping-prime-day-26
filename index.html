@@ -463,7 +463,7 @@ function renderCategorySummary(cats) {
   // Render bottom 3 (green, low rates)
   const bottomHtml = bottom3.map(c => {
     const emoji = categoryEmojis[c.category] || "📊";
-    const barWidth = (c.pct / maxPct) * 100;
+    const barWidth = c.pct;
     return `
       <div class="category-item">
         <div class="category-header">
